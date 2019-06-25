@@ -128,7 +128,6 @@ class SeedNet2SatNetInference(object):
                      (self.raw_global_location_preds[i][1] + x_delta)])
 
             self.raw_global_location_preds = np.asarray(self.raw_global_location_preds)
-
             self.raw_global_location_boxes = np.asarray(self.raw_global_location_boxes)
 
         else:

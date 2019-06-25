@@ -68,7 +68,7 @@ def txt2list(file_path):
     return file_lines
 
 
-def ckpt2model(ckpt_path, model_path, return_model=False):
+def ckpt2model(ckpt_path, model_path=None, return_model=False):
     """Convert a Keras ckeckpoint to a Keras model.
 
     :param ckpt_path: path to the checkpoint
