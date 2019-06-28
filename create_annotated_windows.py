@@ -142,7 +142,7 @@ def main(FLAGS):
                                 valid_locations.append(sw.object_location_with)
                             valid_windows_without.append(sw.windows_without[inds, :, :])
                             valid_count += 1
-                        elif comp_name in test_files and not test_full:
+                        elif comp_name in test_files and not test_full and FLAGS.save_test:
                             if sw.windows_with is not None:
                                 test_windows_with.append(sw.windows_with)
                                 test_locations.append(sw.object_location_with)
@@ -168,18 +168,22 @@ def main(FLAGS):
         valid_locations = np.concatenate(valid_locations)
         valid_annos_with = np.ones(valid_windows_with.shape[0])
         valid_annos_without = np.zeros(valid_windows_without.shape[0])
-        test_windows_with = np.concatenate(test_windows_with)
-        test_windows_without = np.concatenate(test_windows_without)
-        test_locations = np.concatenate(test_locations)
-        test_annos_with = np.ones(test_windows_with.shape[0])
-        test_annos_without = np.zeros(test_windows_without.shape[0])
+
+        if FLAGS.save_test:
+            test_windows_with = np.concatenate(test_windows_with)
+            test_windows_without = np.concatenate(test_windows_without)
+            test_locations = np.concatenate(test_locations)
+            test_annos_with = np.ones(test_windows_with.shape[0])
+            test_annos_without = np.zeros(test_windows_without.shape[0])
 
         train_windows = np.concatenate((train_windows_with, train_windows_without))
         train_annos = np.concatenate((train_annos_with, train_annos_without))
         valid_windows = np.concatenate((valid_windows_with, valid_windows_without))
         valid_annos = np.concatenate((valid_annos_with, valid_annos_without))
-        test_windows = np.concatenate((test_windows_with, test_windows_without))
-        test_annos = np.concatenate((test_annos_with, test_annos_without))
+
+        if FLAGS.save_test:
+            test_windows = np.concatenate((test_windows_with, test_windows_without))
+            test_annos = np.concatenate((test_annos_with, test_annos_without))
 
         path_append = '_seedNet2satNet_windowsize_{}_stride_{}_padding_{}_ratio_{}_trainfraction_{}.h5'.format(FLAGS.window_size, FLAGS.stride, FLAGS.padding, FLAGS.bg2sat_ratio, FLAGS.train_fraction)
         train_c_windows_path = os.path.join(FLAGS.save_data_dir, 'train_classification_windows' + path_append)
@@ -190,10 +194,12 @@ def main(FLAGS):
         valid_c_labels_path = os.path.join(FLAGS.save_data_dir, 'valid_classification_labels' + path_append)
         valid_l_windows_path = os.path.join(FLAGS.save_data_dir, 'valid_localization_windows' + path_append)
         valid_l_labels_path = os.path.join(FLAGS.save_data_dir, 'valid_localization_labels' + path_append)
-        test_c_windows_path = os.path.join(FLAGS.save_data_dir, 'test_classification_windows' + path_append)
-        test_c_labels_path = os.path.join(FLAGS.save_data_dir, 'test_classification_labels' + path_append)
-        test_l_windows_path = os.path.join(FLAGS.save_data_dir, 'test_localization_windows' + path_append)
-        test_l_labels_path = os.path.join(FLAGS.save_data_dir, 'test_localization_labels' + path_append)
+
+        if FLAGS.save_test:
+            test_c_windows_path = os.path.join(FLAGS.save_data_dir, 'test_classification_windows' + path_append)
+            test_c_labels_path = os.path.join(FLAGS.save_data_dir, 'test_classification_labels' + path_append)
+            test_l_windows_path = os.path.join(FLAGS.save_data_dir, 'test_localization_windows' + path_append)
+            test_l_labels_path = os.path.join(FLAGS.save_data_dir, 'test_localization_labels' + path_append)
 
         write_hdf5(train_c_windows_path, train_windows)
         write_hdf5(train_c_labels_path, train_annos)
@@ -203,33 +209,35 @@ def main(FLAGS):
         write_hdf5(valid_c_labels_path, valid_annos)
         write_hdf5(valid_l_windows_path, valid_windows_with)
         write_hdf5(valid_l_labels_path, valid_locations)
-        write_hdf5(test_c_windows_path, test_windows)
-        write_hdf5(test_c_labels_path, test_annos)
-        write_hdf5(test_l_windows_path, test_windows_with)
-        write_hdf5(test_l_labels_path, test_locations)
+
+        if FLAGS.save_test:
+            write_hdf5(test_c_windows_path, test_windows)
+            write_hdf5(test_c_labels_path, test_annos)
+            write_hdf5(test_l_windows_path, test_windows_with)
+            write_hdf5(test_l_labels_path, test_locations)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--satnet_data_dir', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full/SatNet/data',
+                        default='/opt/tfrecords/SatNet.v.1.0.0.0/SatNet/data',
                         help='Top level directory for SatNet data from all sensors and collection days.')
 
     parser.add_argument('--save_data_dir', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seedNet2satNet/SatNet_full/SatNet/data',
+                        default='/home/jsanders/Desktop/data/seedNet2satNet',
                         help='Directory where to save the sub-window data.')
 
     parser.add_argument('--train_file_names', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seedNet2satNet/SatNet_full/SatNet/info/data_split/train.txt',
+                        default='/opt/tfrecords/SatNet.v.1.0.0.0/SatNet/info/data_split/train.txt',
                         help='Path to .txt file containing training file names.')
 
     parser.add_argument('--valid_file_names', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seedNet2satNet/SatNet_full/SatNet/info/data_split/valid.txt',
+                        default='/opt/tfrecords/SatNet.v.1.0.0.0/SatNet/info/data_split/valid.txt',
                         help='Path to .txt file containing validation file names.')
 
     parser.add_argument('--test_file_names', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seedNet2satNet/SatNet_full/SatNet/info/data_split/test.txt',
+                        default='/opt/tfrecords/SatNet.v.1.0.0.0/SatNet/info/data_split/test.txt',
                         help='Path to .txt file containing testing file names.')
 
     parser.add_argument('--train_fraction', type=float,
@@ -255,6 +263,10 @@ if __name__ == '__main__':
     parser.add_argument('--n_test', type=int,
                         default=10410,
                         help='Total number of SatNet testing images.')
+
+    parser.add_argument('--save_test', type=bool,
+                        default=False,
+                        help='Whether or not to save the test sub-windows.')
 
     parser.add_argument('--window_size', type=int,
                         default=32,
