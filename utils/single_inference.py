@@ -12,6 +12,25 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import scipy.cluster.hierarchy as hcluster
 import tensorflow as tf
+from utils.image_reader import SatelliteImage
+from utils.json_parser import ImageAnnotations
+from utils.patch_extractor import SatNetSubWindows
+from keras.models import load_model
+
+
+def crop_image(img, cropx, cropy):
+    """Crop center portion of an image.
+
+    :param img: original image
+    :param cropx: amount to crop in width direction
+    :param cropy: amount to crop in height direction
+    :return: cropped image
+    """
+    y, x = img.shape
+    startx = x // 2 - (cropx // 2)
+    starty = y // 2 - (cropy // 2)
+
+    return img[starty:starty + cropy, startx:startx + cropx]
 
 
 class SeedNet2SatNetInference(object):
@@ -70,10 +89,6 @@ class SeedNet2SatNetInference(object):
                 sub-windows classified as containing a satellite relative to
                 the top left corner of the image. These values are used to map
                 the sub-windows back to the image reference frame
-            tp_windows (float): true positive sub-windows
-            tn_windows (float): true negative sub-windows
-            fp_windows (float): false positive sub-windows
-            fn_windows (float): false negative sub-windows
     """
     def __init__(self,
                  classification_model,
@@ -95,20 +110,20 @@ class SeedNet2SatNetInference(object):
             detected satellite
         :param gt_annos: ground truth annotations object
         """
-        self.box_size = box_size # int
-        self.gt_annos = gt_annos # image anno object
-        self.sliding_window = sliding_window # sliding window object
-        self.raw_class_preds = classification_model.predict(sliding_window.windows, batch_size=batch_size) # 2D numpy array
-        self.class_preds = np.argmax(self.raw_class_preds, axis=1) # 1D numpy array
+        self.box_size = box_size
+        self.gt_annos = gt_annos
+        self.sliding_window = sliding_window
+        self.raw_class_preds = classification_model.predict(sliding_window.windows, batch_size=batch_size)
+        self.class_preds = np.argmax(self.raw_class_preds, axis=1)
 
-        inds = np.where(self.class_preds == 1) # tuple with first entry as numpy array
-        self.n_detections = len(inds[0]) # int
-        self.satellite_class_preds = self.class_preds[inds].astype(float) # 1D numpy array
-        self.raw_pred_object_scores = np.squeeze(self.raw_class_preds[inds, 1]) # 1D numpy array
-        self.satellite_window_preds = sliding_window.windows[inds] # 4D numpy array, last dim = 1 (1 channel)
-        self.satellite_window_gt = sliding_window.object_present[inds] # 1D numpy array
-        self.satellite_window_gt_location = sliding_window.object_location[inds] # 2D numpy array
-        self.satellite_window_corner_coords = sliding_window.window_corner_coords[inds] # 2D numpy array
+        inds = np.where(self.class_preds == 1)
+        self.n_detections = len(inds[0])
+        self.satellite_class_preds = self.class_preds[inds].astype(float)
+        self.raw_pred_object_scores = np.squeeze(self.raw_class_preds[inds, 1])
+        self.satellite_window_preds = sliding_window.windows[inds]
+        self.satellite_window_gt = sliding_window.object_present[inds]
+        self.satellite_window_gt_location = sliding_window.object_location[inds]
+        self.satellite_window_corner_coords = sliding_window.window_corner_coords[inds]
 
         self.raw_location_preds = []
         self.raw_global_location_preds = []
@@ -129,9 +144,6 @@ class SeedNet2SatNetInference(object):
 
             self.raw_global_location_preds = np.asarray(self.raw_global_location_preds)
             self.raw_global_location_boxes = np.asarray(self.raw_global_location_boxes)
-
-        else:
-            pass
 
     def plot_raw_inferences(self, plot_gt=False):
         """Plot the image with the inferred object locations without non-max
@@ -373,3 +385,70 @@ class SeedNet2SatNetInference(object):
                                             score_threshold=conf_thresh)
 
         return inds
+
+
+def test():
+    img_path = r'C:\Users\jsanders\Desktop\data\seednet2satnet\SatNet\data\rme02.04.22.2015\ImageFiles\sat_36516.0116.fits'
+    anno_path = r'C:\Users\jsanders\Desktop\data\seednet2satnet\SatNet\data\rme02.04.22.2015\Annotations\sat_36516.0116.json'
+    classifier_path = 'C:/Users/jsanders/Desktop/dlae_migration2/dlae/models/seedNet2satNet_classifier_32w_4s_10p_10r.h5'
+    localizer_path = 'C:/Users/jsanders/Desktop/dlae_migration2/dlae/models/seedNet2satNet_localizer_32w_4s_10p_10r.h5'
+    image = SatelliteImage(img_path)
+    anno = ImageAnnotations(anno_path)
+
+    # pull all object centroids in the image and store in a list
+    gt_centroids = []
+    gt_boxes = []
+    [gt_centroids.append([obj.y_c, obj.x_c]) for obj in anno.objects]
+    [gt_boxes.append([obj.y_min, obj.x_min, obj.y_max, obj.x_max]) for obj in anno.objects]
+
+    # run sliding window algorithm across the image
+    sw = SatNetSubWindows(img=image.image,
+                          centroids=gt_centroids,
+                          window_size=32,
+                          stride=1,
+                          padding=12,
+                          img_width=512,
+                          img_height=512,
+                          pad_img=True)
+    sw.z2o_normalize_windows(0.0, 65535.0)
+    classifier = load_model(classifier_path)
+    localizer = load_model(localizer_path)
+
+    inference_obj = SeedNet2SatNetInference(classifier, localizer, sw, gt_annos=anno)
+    inference_obj.plot_raw_inferences(plot_gt=True)
+    inference_obj.plot_raw_boxes(plot_gt=True)
+    # cluster_locs, cluster_scores = inference_obj.cluster_raw_detections(thresh=0.05)
+    # object_locs, object_boxes, object_scores = inference_obj.cluster_non_max_suppression(cluster_locs, cluster_scores)
+    # inference_obj.plot_final_preds(object_locs, plot_gt=True, plot_centroids=True)
+
+    inds = inference_obj.non_max_suppression(inference_obj.raw_global_location_boxes,
+                                             inference_obj.raw_pred_object_scores,
+                                             conf_thresh=0.0, iou_thresh=1.0, max_boxes=10)
+    with tf.Session() as sess:
+        sess.run(inds)
+        detection_inds = inds.eval()
+
+    object_locs = list(inference_obj.raw_global_location_preds[detection_inds])
+    object_preds = list(inference_obj.raw_global_location_boxes[detection_inds])
+    object_scores = list(inference_obj.raw_pred_object_scores[detection_inds])
+
+    inference_obj.plot_final_preds(object_locs, plot_gt=True, plot_centroids=True)
+
+    # # create the file name
+    # file_name = '_'.join([anno.directory, anno.name])
+    #
+    # # add detections to the dictionary
+    # detections_dict['image_name'].append(file_name)
+    # detections_dict['predicted_boxes'].append(inference_obj.raw_global_location_boxes)
+    # detections_dict['predicted_scores'].append(inference_obj.raw_class_preds)
+    # detections_dict['ground_truth_boxes'].append(gt_boxes)
+    # detections_dict['ground_truth_class_id'].append(inference_obj.satellite_class_preds)
+    #
+    # with open(FLAGS.json_path, 'w') as f:
+    #     json.dump(detections_dict, f, indent=1)
+    #
+    # f.close()
+
+
+if __name__ == '__main__':
+    test()

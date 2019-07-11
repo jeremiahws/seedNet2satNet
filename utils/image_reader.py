@@ -15,7 +15,7 @@ class SatelliteImage(object):
     """.fits image and header information.
 
         Attributes:
-            image (float): the satellite image stored as a float32 numpy array
+            image (uint): the satellite image stored as a float32 numpy array
             header (list): header information of the .fits file
             name (str): name of the .fits file
     """
@@ -31,4 +31,5 @@ class SatelliteImage(object):
         hdulist = fits.open(file_path)
         hdu = hdulist[0]
         self.image = np.asarray(hdu.data, 'float32')
+        self.image = self.image.astype(np.uint16)
         self.header = hdu.header

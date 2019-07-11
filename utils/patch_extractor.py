@@ -8,6 +8,15 @@ Class to extract and prepare sub-windows from SatNet images.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from joblib import Parallel, delayed
+import multiprocessing
+import itertools
+
+
+def extract_patch(img, corner_coords):
+    patch = img[corner_coords[0]:corner_coords[1], corner_coords[2]:corner_coords[3]]
+
+    return patch
 
 
 class SatNetSubWindows(object):
@@ -20,6 +29,8 @@ class SatNetSubWindows(object):
                 it is assumed to be 512
             img_height (int): number of rows of the image. If not specified,
                 it is assumed to be 512
+            img_pad (int): amount of padding applied to the image (for edge
+                cases)
             n_windows (int): number of sub-windows extracted from the image
             windows (int): sub-windows extracted from the image, stored as a
                 uint16 numpy array
@@ -43,7 +54,8 @@ class SatNetSubWindows(object):
                 present in the window. To populate this variable, a call must
                 be made to the get_obj_windows method
     """
-    def __init__(self, img, centroids, window_size, stride, padding=0, img_width=512, img_height=512):
+    def __init__(self, img, centroids, window_size, stride, padding=0, img_width=512, img_height=512,
+                 pad_img=True, parallel=True):
         """Performs sliding-window upon initialization.
 
         :param img: the satellite image
@@ -57,14 +69,26 @@ class SatNetSubWindows(object):
             the central potion of the window, outside of the padded region
         :param img_width: number of columns of the image
         :param img_height: number of rows of the image
+        :param pad_img: whether or not to add padding to the image before
+            performing the sliding window operation on the image. Useful for
+            cases where there may be an object near the edge(s) of the image
+        :param parallel: whether to perform the sub-window extraction in
+            parallel
         """
         self.image = img
         self.window_size = window_size
         self.img_width = img_width
         self.img_height = img_height
+        self.stride = stride
 
-        n_row_windows = np.ceil((img_height - self.window_size + stride) / stride).astype(int)
-        n_col_windows = np.ceil((img_width - self.window_size + stride) / stride).astype(int)
+        if pad_img:
+            self.img_pad = padding
+            img = np.pad(self.image, pad_width=self.img_pad, mode='constant')
+        else:
+            self.img_pad = 0
+
+        n_row_windows = np.ceil((self.img_height + 2 * self.img_pad - self.window_size + self.stride) / self.stride).astype(int)
+        n_col_windows = np.ceil((self.img_width + 2 * self.img_pad - self.window_size + self.stride) / self.stride).astype(int)
         n_windows = n_row_windows * n_col_windows
 
         self.n_windows = n_windows
@@ -77,43 +101,81 @@ class SatNetSubWindows(object):
         self.object_location_with = None
         self.object_location_without = None
 
-        count = 0
-        for cwindow in range(n_col_windows):
-            if cwindow == 0:
-                cwindow_start = cwindow
-                cwindow_end = self.window_size
-            else:
-                cwindow_start = cwindow_start + stride
-                cwindow_end = cwindow_start + self.window_size
+        if parallel:
+            rstart = [i for i in range(0, n_row_windows * self.stride, self.stride)]
+            rend = [i + self.window_size for i in rstart]
+            cstart = [i for i in range(0, n_col_windows * self.stride, self.stride)]
+            cend = [i + self.window_size for i in rstart]
+            if rend[-1] > self.img_height + 2 * self.img_pad - 1:
+                rstart[-1] = self.img_height + 2 * self.img_pad - self.window_size
+                rend[-1] = None
 
-            if cwindow_end > img_width - 1:
-                cwindow_start = img_width - self.window_size
-                cwindow_end = None
+            if cend[-1] > self.img_width + 2 * self.img_pad - self.window_size:
+                cstart[-1] = self.img_width + 2 * self.img_pad - self.window_size
+                cend[-1] = None
 
-            for rwindow in range(n_row_windows):
-                if rwindow == 0:
-                    rwindow_start = rwindow
-                    rwindow_end = self.window_size
+            row_coords = np.transpose(np.array([rstart, rend]))
+            col_coords = np.transpose(np.array([cstart, cend]))
+
+            corner_coords = []
+            for (r, c) in itertools.product(*(row_coords, col_coords)):
+                corner_coords.append(np.concatenate((r, c)))
+
+            num_cores = multiprocessing.cpu_count()
+            windows = Parallel(n_jobs=num_cores)(delayed(extract_patch)(img, coord) for coord in corner_coords)
+            self.windows = np.asarray(windows, dtype=np.uint16)
+            self.window_corner_coords = np.asarray(corner_coords)
+
+            #TODO get centroids
+            # for centroid in centroids:
+            #     if (rwindow_start + padding) / self.img_height < centroid[0] < (rwindow_start + self.window_size - padding) / self.img_height \
+            #             and (cwindow_start + padding) / self.img_width < centroid[1] < (cwindow_start + self.window_size - padding) / self.img_width:
+            #         self.object_present[count] = 1
+            #         self.object_location[count, :] = [centroid[0] - rwindow_start / self.img_height,
+            #                                           centroid[1] - cwindow_start / self.img_width]
+            #     else:
+            #         self.object_present[count] = 0
+            #         self.object_location[count, :] = [0.0, 0.0]
+
+        else:
+            count = 0
+            for cwindow in range(n_col_windows):
+                if cwindow == 0:
+                    cwindow_start = cwindow
+                    cwindow_end = self.window_size
                 else:
-                    rwindow_start = rwindow_start + stride
-                    rwindow_end = rwindow_start + self.window_size
+                    cwindow_start = cwindow_start + stride
+                    cwindow_end = cwindow_start + self.window_size
 
-                if rwindow_end > img_height - 1:
-                    rwindow_start = img_height - self.window_size
-                    rwindow_end = None
+                if cwindow_end > self.img_width + 2 * self.img_pad - 1:
+                    cwindow_start = self.img_width + 2 * self.img_pad - self.window_size
+                    cwindow_end = None
 
-                self.windows[count, :, :] = img[rwindow_start:rwindow_end, cwindow_start:cwindow_end]
-                self.window_corner_coords[count, :] = [rwindow_start / img_height, cwindow_start / img_width]
-
-                for centroid in centroids:
-                    if (rwindow_start + padding) / img_height < centroid[0] < (rwindow_start + self.window_size - padding) / img_height \
-                            and (cwindow_start + padding) / img_width < centroid[1] < (cwindow_start + self.window_size - padding) / img_width:
-                        self.object_present[count] = 1
-                        self.object_location[count, :] = [centroid[0] - rwindow_start / img_height, centroid[1] - cwindow_start / img_width]
+                for rwindow in range(n_row_windows):
+                    if rwindow == 0:
+                        rwindow_start = rwindow
+                        rwindow_end = self.window_size
                     else:
-                        self.object_present[count] = 0
-                        self.object_location[count, :] = [0.0, 0.0]
-                count = count + 1
+                        rwindow_start = rwindow_start + stride
+                        rwindow_end = rwindow_start + self.window_size
+
+                    if rwindow_end > self.img_height + 2 * self.img_pad - 1:
+                        rwindow_start = self.img_height + 2 * self.img_pad - self.window_size
+                        rwindow_end = None
+
+                    self.windows[count, :, :] = img[rwindow_start:rwindow_end, cwindow_start:cwindow_end]
+                    self.window_corner_coords[count, :] = [(rwindow_start - self.img_pad) / self.img_height,
+                                                           (cwindow_start - self.img_pad) / self.img_width]
+
+                    for centroid in centroids:
+                        if (rwindow_start + padding) / self.img_height < centroid[0] < (rwindow_start + self.window_size - padding) / self.img_height \
+                                and (cwindow_start + padding) / self.img_width < centroid[1] < (cwindow_start + self.window_size - padding) / self.img_width:
+                            self.object_present[count] = 1
+                            self.object_location[count, :] = [centroid[0] - rwindow_start / self.img_height, centroid[1] - cwindow_start / self.img_width]
+                        else:
+                            self.object_present[count] = 0
+                            self.object_location[count, :] = [0.0, 0.0]
+                    count = count + 1
 
         self.windows = self.windows[:, :, :, np.newaxis]
 
