@@ -310,23 +310,23 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--data_dir', type=str,
-                        default="C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full/SatNet/data",
+                        default="/opt/tfrecords/SatNet.v.1.1.0.0/SatNet/data",
                         help='Path to SatNet data directory.')
 
     parser.add_argument('--output_dir', type=str,
-                        default="C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full/SatNet",
+                        default="/home/jsanders/Desktop/data",
                         help='Path to the output directory for the tfrecords.')
 
     parser.add_argument('--train_file_names', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full/SatNet/info/data_split/train.txt',
+                        default='/opt/tfrecords/SatNet.v.1.1.0.0/SatNet/info/data_split/train.txt',
                         help='Path to .txt file containing training file names.')
 
     parser.add_argument('--valid_file_names', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full/SatNet/info/data_split/valid.txt',
+                        default='/opt/tfrecords/SatNet.v.1.1.0.0/SatNet/info/data_split/valid.txt',
                         help='Path to .txt file containing validation file names.')
 
     parser.add_argument('--test_file_names', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full/SatNet/info/data_split/test.txt',
+                        default='/opt/tfrecords/SatNet.v.1.1.0.0/SatNet/info/data_split/test.txt',
                         help='Path to .txt file containing testing file names.')
 
     parser.add_argument('--window_size', type=int,
