@@ -8,8 +8,8 @@ Class to extract and prepare sub-windows from SatNet images.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from joblib import Parallel, delayed
-import multiprocessing
+#from joblib import Parallel, delayed
+#import multiprocessing
 import itertools
 
 
@@ -55,7 +55,7 @@ class SatNetSubWindows(object):
                 be made to the get_obj_windows method
     """
     def __init__(self, img, centroids, window_size, stride, padding=0, img_width=512, img_height=512,
-                 pad_img=True, parallel=True):
+                 pad_img=True, parallel=False):
         """Performs sliding-window upon initialization.
 
         :param img: the satellite image
@@ -121,10 +121,10 @@ class SatNetSubWindows(object):
             for (r, c) in itertools.product(*(row_coords, col_coords)):
                 corner_coords.append(np.concatenate((r, c)))
 
-            num_cores = multiprocessing.cpu_count()
-            windows = Parallel(n_jobs=num_cores)(delayed(extract_patch)(img, coord) for coord in corner_coords)
-            self.windows = np.asarray(windows, dtype=np.uint16)
-            self.window_corner_coords = np.asarray(corner_coords)
+            #num_cores = multiprocessing.cpu_count()
+            #windows = Parallel(n_jobs=num_cores)(delayed(extract_patch)(img, coord) for coord in corner_coords)
+            #self.windows = np.asarray(windows, dtype=np.uint16)
+            #self.window_corner_coords = np.asarray(corner_coords)
 
             #TODO get centroids
             # for centroid in centroids:
@@ -216,7 +216,7 @@ class SatNetSubWindows(object):
         return
 
     def plot_one_without(self):
-        """Plot a random window without an object present.
+        """Plot a random window without an object present
 
         :return: nothing
         """
