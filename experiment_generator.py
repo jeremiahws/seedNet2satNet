@@ -198,7 +198,9 @@ def classifier_main(FLAGS):
                              + ' --shuffle_training={}'.format(FLAGS.shuffle_training)\
                              + ' --batch_size={}'.format(FLAGS.batch_size)\
                              + ' --learning_rate={}'.format(FLAGS.learning_rate)\
-                             + ' --num_training_epochs={}'.format(FLAGS.training_epochs)
+                             + ' --num_training_epochs={}'.format(FLAGS.num_training_epochs)\
+                             + ' --gpu_list={}'.format(FLAGS.gpu_list)\
+                             + ' --dataset_buffer_size={}'.format(FLAGS.dataset_buffer_size)
 
             os.system(create_command)
 
@@ -283,11 +285,13 @@ def localizer_main(FLAGS):
                              + ' --num_localizer_valid_windows={}'.format(localizer_valid_window_numbers[dict_call])\
                              + ' --window_size={}'.format(experiment[0])\
                              + ' --stride={}'.format(experiment[1])\
-                             + ' --padding={}'.format(experiment[2])\
-                             + ' --shuffle_training={}'.format(FLAGS.shuffle_training)\
-                             + ' --batch_size={}'.format(FLAGS.batch_size)\
-                             + ' --learning_rate={}'.format(FLAGS.learning_rate)\
-                             + ' --num_training_epochs={}'.format(FLAGS.training_epochs)
+                             + ' --padding={}'.format(experiment[2]) \
+                             + ' --shuffle_training={}'.format(FLAGS.shuffle_training) \
+                             + ' --batch_size={}'.format(FLAGS.batch_size) \
+                             + ' --learning_rate={}'.format(FLAGS.learning_rate) \
+                             + ' --num_training_epochs={}'.format(FLAGS.num_training_epochs) \
+                             + ' --gpu_list={}'.format(FLAGS.gpu_list) \
+                             + ' --dataset_buffer_size={}'.format(FLAGS.dataset_buffer_size)
 
             os.system(create_command)
 
@@ -359,7 +363,7 @@ if __name__ == '__main__':
                         default=1e-4,
                         help='Initial learning rate.')
 
-    parser.add_argument('--training_epochs', type=int,
+    parser.add_argument('--num_training_epochs', type=int,
                         default=1000,
                         help='Number of epochs to train model.')
 
