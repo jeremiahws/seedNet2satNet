@@ -14,7 +14,7 @@ class SWCNNEncoder(object):
                  window_size,
                  stride,
                  padding,
-                 neg_pos_ratio):
+                 neg_pos_ratio=1):
         '''Encoder for a sliding-window CNN.
 
         Most of the encoding has already been done in the sub-window extraction. This can be changed in the future
