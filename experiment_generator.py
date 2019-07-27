@@ -356,7 +356,7 @@ if __name__ == '__main__':
                         help='Number of threads to be used by the input pipeline.')
 
     parser.add_argument('--gpu_list', type=str,
-                        default="3",
+                        default="2",
                         help='GPUs to use with this model.')
 
     parser.add_argument('--learning_rate', type=float,
@@ -371,4 +371,4 @@ if __name__ == '__main__':
     FLAGS, unparsed = parser.parse_known_args()
 
     classifier_main(FLAGS)
-    localizer_main(FLAGS)
+    #localizer_main(FLAGS)
