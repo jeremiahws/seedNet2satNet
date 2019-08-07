@@ -304,7 +304,7 @@ if __name__ == '__main__':
                         help='Path to the directory containing all of the tfrecords files for the subwindows.')
 
     parser.add_argument('--window_size', type=str,
-                        default='16,20,24,28,32',
+                        default='32',
                         help='Size of sub-windows (in pixels); single value or multiple values separated by a comma.')
 
     parser.add_argument('--stride', type=str,
