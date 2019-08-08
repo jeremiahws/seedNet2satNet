@@ -13,7 +13,6 @@ import itertools
 
 
 def main(FLAGS):
-    os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu_list
     paddings = FLAGS.padding.split(',')
     window_sizes = FLAGS.window_size.split(',')
     strides = FLAGS.stride.split(',')
@@ -21,31 +20,34 @@ def main(FLAGS):
     experiments = [window_sizes, strides, paddings, bg2sat_ratios]
 
     for experiment in itertools.product(*experiments):
-        classifier_ckpt_name = 'classifier_seedNet2satNet_classifier_windowsize_{}_stride_{}_padding_{}_ratio_{}.h5'.format(experiment[0], experiment[1], experiment[2], experiment[3])
-        localizer_ckpt_name = 'localizer_seedNet2satNet_localizer_windowsize_{}_stride_{}_padding_{}.h5'.format(experiment[0], experiment[1], experiment[2])
-        json_file = 'classifier_windowsize_{}_stride_{}_padding_{}_ratio_{}_localizer_windowsize_{}_stride_{}_padding_{}.json'.format(experiment[0], experiment[1], experiment[2], experiment[3],
-                                                                                                                                      experiment[0], experiment[1], experiment[2])
+        if int(experiment[0]) - 2 * int(experiment[2]) >= FLAGS.minimum_center \
+                and int(experiment[1]) < int(experiment[0]) - 2 * int(experiment[2]):
+            classifier_ckpt_name = 'classifier_seedNet2satNet_classifier_windowsize_{}_stride_{}_padding_{}_ratio_{}.h5'.format(experiment[0], experiment[1], experiment[2], experiment[3])
+            localizer_ckpt_name = 'localizer_seedNet2satNet_localizer_windowsize_{}_stride_{}_padding_{}.h5'.format(experiment[0], experiment[1], experiment[2])
+            json_file = 'classifier_windowsize_{}_stride_{}_padding_{}_ratio_{}_localizer_windowsize_{}_stride_{}_padding_{}.json'.format(experiment[0], experiment[1], experiment[2], experiment[3],
+                                                                                                                                          experiment[0], experiment[1], experiment[2])
 
-        classifier_path = os.path.join(FLAGS.classification_model_dir, classifier_ckpt_name)
-        localizer_path = os.path.join(FLAGS.localization_model_dir, localizer_ckpt_name)
+            classifier_path = os.path.join(FLAGS.classification_model_dir, classifier_ckpt_name)
+            localizer_path = os.path.join(FLAGS.localization_model_dir, localizer_ckpt_name)
 
-        json_path = os.path.join(FLAGS.json_dir, json_file)
-        create_command = 'python write_evaluate_file.py' \
-                       + ' --window_size={}'.format(experiment[0])\
-                       + ' --stride={}'.format(experiment[1])\
-                       + ' --padding={}'.format(experiment[2])\
-                       + ' --width={}'.format(FLAGS.width)\
-                       + ' --height={}'.format(FLAGS.height)\
-                       + ' --json_path={}'.format(json_path)\
-                       + ' --classifier_path={}'.format(classifier_path)\
-                       + ' --localizer_path={}'.format(localizer_path)\
-                       + ' --test_file_names={}'.format(FLAGS.test_file_names)\
-                       + ' --test_fraction={}'.format(FLAGS.test_fraction)\
-                       + ' --n_test={}'.format(FLAGS.n_test)\
-                       + ' --satnet_data_dir={}'.format(FLAGS.satnet_data_dir)\
-                       + ' --batch_size={}'.format(FLAGS.batch_size)
+            json_path = os.path.join(FLAGS.json_dir, json_file)
+            create_command = 'python write_evaluate_file.py' \
+                           + ' --window_size={}'.format(experiment[0])\
+                           + ' --stride={}'.format(experiment[1])\
+                           + ' --padding={}'.format(experiment[2])\
+                           + ' --width={}'.format(FLAGS.width)\
+                           + ' --height={}'.format(FLAGS.height)\
+                           + ' --json_path={}'.format(json_path)\
+                           + ' --classifier_path={}'.format(classifier_path)\
+                           + ' --localizer_path={}'.format(localizer_path)\
+                           + ' --test_file_names={}'.format(FLAGS.test_file_names)\
+                           + ' --test_fraction={}'.format(FLAGS.test_fraction)\
+                           + ' --n_test={}'.format(FLAGS.n_test)\
+                           + ' --satnet_data_dir={}'.format(FLAGS.satnet_data_dir)\
+                           + ' --batch_size={}'.format(FLAGS.batch_size)\
+                           + ' --gpu_list={}'.format(FLAGS.gpu_list)
 
-        os.system(create_command)
+            os.system(create_command)
 
 
 if __name__ == '__main__':
@@ -110,6 +112,10 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_list', type=str,
                         default="2",
                         help='GPUs to use with this model.')
+
+    parser.add_argument('--minimum_center', type=int,
+                        default=4,
+                        help='Minimum of the central coverage of the sub-windows.')
 
     # parse known arguements
     FLAGS, unparsed = parser.parse_known_args()

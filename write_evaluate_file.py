@@ -30,6 +30,7 @@ def main(FLAGS):
     :param FLAGS: flags from the parser with inputs specified by the user
     :return: nothing
     """
+    os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu_list
     # create detections dictionary (based on Ian's format)
     detections_dict = {
         "image_name": [],
@@ -240,6 +241,10 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int,
                         default=7000,
                         help='Batch size to use in testing.')
+
+    parser.add_argument('--gpu_list', type=str,
+                        default="2",
+                        help='GPUs to use with this model.')
 
     # parse known arguements
     FLAGS, unparsed = parser.parse_known_args()
