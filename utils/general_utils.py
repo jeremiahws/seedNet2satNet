@@ -8,7 +8,7 @@ General purpose utility functions.
 
 import json
 import h5py
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 
 
 def load_json(json_file):

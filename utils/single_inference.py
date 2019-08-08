@@ -15,7 +15,7 @@ import tensorflow as tf
 from utils.image_reader import SatelliteImage
 from utils.json_parser import ImageAnnotations
 from utils.patch_extractor import SatNetSubWindows
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 
 
 def crop_image(img, cropx, cropy):
