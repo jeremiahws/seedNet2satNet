@@ -144,7 +144,7 @@ def main(FLAGS):
                         object_boxes = []
                         object_scores = []
 
-                    inference_obj.plot_final_preds(object_locs, plot_gt=True, plot_centroids=True)
+                    # inference_obj.plot_final_preds(object_locs, plot_gt=True, plot_centroids=True)
 
                     # stop timer for single inference
                     toc = time.clock()
