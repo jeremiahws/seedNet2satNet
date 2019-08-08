@@ -23,23 +23,11 @@ def main(FLAGS):
     for experiment in itertools.product(*experiments):
         classifier_ckpt_name = 'classifier_seedNet2satNet_classifier_windowsize_{}_stride_{}_padding_{}_ratio_{}.h5'.format(experiment[0], experiment[1], experiment[2], experiment[3])
         localizer_ckpt_name = 'localizer_seedNet2satNet_localizer_windowsize_{}_stride_{}_padding_{}.h5'.format(experiment[0], experiment[1], experiment[2])
-        classifier_model_name = 'model_classifier_seedNet2satNet_classifier_windowsize_{}_stride_{}_padding_{}_ratio_{}.h5'.format(experiment[0], experiment[1], experiment[2], experiment[3])
-        localizer_model_name = 'model_localizer_seedNet2satNet_localizer_windowsize_{}_stride_{}_padding_{}.h5'.format(experiment[0], experiment[1], experiment[2])
         json_file = 'classifier_windowsize_{}_stride_{}_padding_{}_ratio_{}_localizer_windowsize_{}_stride_{}_padding_{}.json'.format(experiment[0], experiment[1], experiment[2], experiment[3],
                                                                                                                                       experiment[0], experiment[1], experiment[2])
 
-        classifier_ckpt_path = os.path.join(FLAGS.classification_model_dir, classifier_ckpt_name)
-        localizer_ckpt_path = os.path.join(FLAGS.localization_model_dir, localizer_ckpt_name)
-        classifier_model_path = os.path.join(FLAGS.classification_model_dir, classifier_model_name)
-        localizer_model_path = os.path.join(FLAGS.localization_model_dir, localizer_model_name)
-        if FLAGS.ckpt2model is True:
-            ckpt2model(classifier_ckpt_path, classifier_model_path)
-            ckpt2model(localizer_ckpt_path, localizer_model_path)
-            classifier_path = classifier_model_path
-            localizer_path = localizer_model_path
-        else:
-            classifier_path = classifier_ckpt_path
-            localizer_path = localizer_ckpt_path
+        classifier_path = os.path.join(FLAGS.classification_model_dir, classifier_ckpt_name)
+        localizer_path = os.path.join(FLAGS.localization_model_dir, localizer_ckpt_name)
 
         json_path = os.path.join(FLAGS.json_dir, json_file)
         create_command = 'python write_evaluate_file.py' \
