@@ -35,6 +35,11 @@ def main(FLAGS):
         if FLAGS.ckpt2model:
             ckpt2model(classifier_ckpt_path, classifier_model_path)
             ckpt2model(localizer_ckpt_path, localizer_model_path)
+            classifier_path = classifier_model_path
+            localizer_path = localizer_model_path
+        else:
+            classifier_path = classifier_ckpt_path
+            localizer_path = localizer_ckpt_path
 
         json_path = os.path.join(FLAGS.json_dir, json_file)
         create_command = 'python write_evaluate_file.py' \
@@ -44,8 +49,8 @@ def main(FLAGS):
                        + ' --width={}'.format(FLAGS.width)\
                        + ' --height={}'.format(FLAGS.height)\
                        + ' --json_path={}'.format(json_path)\
-                       + ' --classifier_path={}'.format(classifier_model_path)\
-                       + ' --localizer_path={}'.format(localizer_model_path)\
+                       + ' --classifier_path={}'.format(classifier_path)\
+                       + ' --localizer_path={}'.format(localizer_path)\
                        + ' --test_file_names={}'.format(FLAGS.test_file_names)\
                        + ' --test_fraction={}'.format(FLAGS.test_fraction)\
                        + ' --n_test={}'.format(FLAGS.n_test)\
@@ -119,7 +124,7 @@ if __name__ == '__main__':
                         help='GPUs to use with this model.')
 
     parser.add_argument('--ckpt2model', type=bool,
-                        default=True,
+                        default=False,
                         help='The HDF5 files are checkpoints that need to be converted to models.')
 
     # parse known arguements
