@@ -13,13 +13,13 @@ from utils.json_parser import ImageAnnotations
 from utils.patch_extractor import SatNetSubWindows
 from utils.single_inference import SeedNet2SatNetInference
 from utils.general_utils import txt2list
-from keras.models import load_model
 import tensorflow as tf
 import json
 from glob import glob
 import os
 import time
 from math import floor
+from models.feature_extractor_zoo import VGG_like
 
 
 def main(FLAGS):
@@ -48,8 +48,10 @@ def main(FLAGS):
     sub_dirs = glob(os.path.join(FLAGS.satnet_data_dir, '*'))
 
     # load the seedNet2satNet models
-    classifier = load_model(FLAGS.classifier_path)
-    localizer = load_model(FLAGS.localizer_path)
+    classifier = VGG_like((FLAGS.window_size, FLAGS.window_size, 1), 2, softmax_output=True)
+    localizer = VGG_like((FLAGS.window_size, FLAGS.window_size, 1), 2, softmax_output=False)
+    classifier.load_weights(FLAGS.classifier_path)
+    localizer.load_weights(FLAGS.localizer_path)
 
     inference_count = 0
     inference_time = 0
