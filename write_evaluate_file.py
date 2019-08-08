@@ -110,39 +110,39 @@ def main(FLAGS):
                     sw.z2o_normalize_windows(0.0, 65535.0)
 
                     # perform satellite detection inferences
-                    inference_obj = SeedNet2SatNetInference(classifier, localizer, sw, gt_annos=anno, batch_size=256)
+                    inference_obj = SeedNet2SatNetInference(classifier, localizer, sw, gt_annos=anno, batch_size=FLAGS.batch_size)
 
-                    # apply clustering-based non-max suppression
-                    cluster_locs, cluster_scores = inference_obj.cluster_raw_detections(thresh=0.05)
-                    object_locs, object_boxes, object_scores = inference_obj.cluster_non_max_suppression(cluster_locs, cluster_scores, thresh=0.99)
-                    inference_obj.plot_final_preds(object_locs, plot_gt=True, plot_centroids=True)
-                    object_scores = [[1.0 - score, score] for score in object_scores]
-
-                    # if inference_obj.n_detections > 1:
-                    #     # apply generic non-max suppression based on IoU
-                    #     inds = inference_obj.non_max_suppression(inference_obj.raw_global_location_boxes,
-                    #                                              inference_obj.raw_pred_object_scores,
-                    #                                              conf_thresh=0.99, iou_thresh=0.01, max_boxes=10)
-                    #     with tf.Session() as sess:
-                    #         sess.run(inds)
-                    #         detection_inds = inds.eval()
-                    #
-                    #     object_locs = list(inference_obj.raw_global_location_preds[detection_inds])
-                    #     object_boxes = list(inference_obj.raw_global_location_boxes[detection_inds])
-                    #     object_scores = list(inference_obj.raw_pred_object_scores[detection_inds])
-                    #     object_scores = [[1.0 - score, score] for score in object_scores]
-                    #
-                    # elif inference_obj.n_detections == 1:
-                    #     object_locs = list(inference_obj.raw_global_location_preds)
-                    #     object_boxes = list(inference_obj.raw_global_location_boxes)
-                    #     object_scores = [1.0 - inference_obj.raw_pred_object_scores, inference_obj.raw_pred_object_scores]
-                    #
-                    # else:
-                    #     object_locs = []
-                    #     object_boxes = []
-                    #     object_scores = []
-                    #
+                    # # apply clustering-based non-max suppression
+                    # cluster_locs, cluster_scores = inference_obj.cluster_raw_detections(thresh=0.05)
+                    # object_locs, object_boxes, object_scores = inference_obj.cluster_non_max_suppression(cluster_locs, cluster_scores, thresh=0.99)
                     # inference_obj.plot_final_preds(object_locs, plot_gt=True, plot_centroids=True)
+                    # object_scores = [[1.0 - score, score] for score in object_scores]
+
+                    if inference_obj.n_detections > 1:
+                        # apply generic non-max suppression based on IoU
+                        inds = inference_obj.non_max_suppression(inference_obj.raw_global_location_boxes,
+                                                                 inference_obj.raw_pred_object_scores,
+                                                                 conf_thresh=0.99, iou_thresh=0.01, max_boxes=10)
+                        with tf.Session() as sess:
+                            sess.run(inds)
+                            detection_inds = inds.eval()
+
+                        object_locs = list(inference_obj.raw_global_location_preds[detection_inds])
+                        object_boxes = list(inference_obj.raw_global_location_boxes[detection_inds])
+                        object_scores = list(inference_obj.raw_pred_object_scores[detection_inds])
+                        object_scores = [[1.0 - score, score] for score in object_scores]
+
+                    elif inference_obj.n_detections == 1:
+                        object_locs = list(inference_obj.raw_global_location_preds)
+                        object_boxes = list(inference_obj.raw_global_location_boxes)
+                        object_scores = [1.0 - inference_obj.raw_pred_object_scores, inference_obj.raw_pred_object_scores]
+
+                    else:
+                        object_locs = []
+                        object_boxes = []
+                        object_scores = []
+
+                    inference_obj.plot_final_preds(object_locs, plot_gt=True, plot_centroids=True)
 
                     # stop timer for single inference
                     toc = time.clock()
@@ -234,6 +234,10 @@ if __name__ == '__main__':
     parser.add_argument('--satnet_data_dir', type=str,
                         default='C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full/SatNet/data',
                         help='Top level directory for SatNet data from all sensors and collection days.')
+
+    parser.add_argument('--batch_size', type=int,
+                        default=7000,
+                        help='Batch size to use in testing.')
 
     # parse known arguements
     FLAGS, unparsed = parser.parse_known_args()
