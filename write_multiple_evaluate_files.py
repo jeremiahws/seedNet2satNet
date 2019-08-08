@@ -10,10 +10,10 @@ to evaluate JSON files.
 import argparse
 import os
 import itertools
-from utils.general_utils import ckpt2model
 
 
 def main(FLAGS):
+    os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu_list
     paddings = FLAGS.padding.split(',')
     window_sizes = FLAGS.window_size.split(',')
     strides = FLAGS.stride.split(',')
@@ -110,10 +110,6 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_list', type=str,
                         default="2",
                         help='GPUs to use with this model.')
-
-    parser.add_argument('--ckpt2model', type=bool,
-                        default=False,
-                        help='The HDF5 files are checkpoints that need to be converted to models.')
 
     # parse known arguements
     FLAGS, unparsed = parser.parse_known_args()
