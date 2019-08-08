@@ -32,7 +32,7 @@ def main(FLAGS):
         localizer_ckpt_path = os.path.join(FLAGS.localization_model_dir, localizer_ckpt_name)
         classifier_model_path = os.path.join(FLAGS.classification_model_dir, classifier_model_name)
         localizer_model_path = os.path.join(FLAGS.localization_model_dir, localizer_model_name)
-        if FLAGS.ckpt2model:
+        if FLAGS.ckpt2model is True:
             ckpt2model(classifier_ckpt_path, classifier_model_path)
             ckpt2model(localizer_ckpt_path, localizer_model_path)
             classifier_path = classifier_model_path
