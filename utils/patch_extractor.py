@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 #from joblib import Parallel, delayed
 #import multiprocessing
 import itertools
+import tensorflow as tf
 
 
 def extract_patch(img, corner_coords):
@@ -126,7 +127,9 @@ class SatNetSubWindows(object):
             #self.windows = np.asarray(windows, dtype=np.uint16)
             #self.window_corner_coords = np.asarray(corner_coords)
 
-            #TODO get centroids
+            #TODO get centroids for parallelized sub-window extraction
+            # (code below is a duplicate of non-paralellized version)
+            # note: oddly parallelized version was slower than non-parallelized version with the above implementation
             # for centroid in centroids:
             #     if (rwindow_start + padding) / self.img_height < centroid[0] < (rwindow_start + self.window_size - padding) / self.img_height \
             #             and (cwindow_start + padding) / self.img_width < centroid[1] < (cwindow_start + self.window_size - padding) / self.img_width:
@@ -242,3 +245,31 @@ class SatNetSubWindows(object):
             self.windows_with = (self.windows_with - min) / (max - min)
         if self.windows_without is not None:
             self.windows_without = (self.windows_without - min) / (max - min)
+
+    def per_window_standardization(self):
+        """Normalize the sub-windows according to tf.image.per_image_standardization.
+        This normalization method normalizes each sub-window as:
+            window_normalized = (window - mean(window)) / adjusted_stddev(window)
+                where:
+            adjusted_stddev(window) = max(stddev(window), 1.0/sqrt(num_elements(window)))
+
+        :param min: the minimum intensity value
+        :param max: the maximum intensity value
+        :return: nothing
+        """
+        windows = tf.image.per_image_standardization(self.windows)
+        with tf.Session() as sess:
+            sess.run(windows)
+            self.windows = windows.eval()
+
+        if self.windows_with is not None:
+            windows = tf.image.per_image_standardization(self.windows_with)
+            with tf.Session() as sess:
+                sess.run(windows)
+                self.windows_with = windows.eval()
+
+        if self.windows_without is not None:
+            windows = tf.image.per_image_standardization(self.windows_without)
+            with tf.Session() as sess:
+                sess.run(windows)
+                self.windows_without = windows.eval()
