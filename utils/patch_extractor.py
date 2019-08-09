@@ -15,9 +15,27 @@ import tensorflow as tf
 
 
 def extract_patch(img, corner_coords):
+    """Extracts a patch from an image given the coordinates of the patch corners.
+
+    :param img: image to extract a patch from
+    :param corner_coords: corner coordinates of the patch within the image
+    :return: the extracted patch
+    """
     patch = img[corner_coords[0]:corner_coords[1], corner_coords[2]:corner_coords[3]]
 
     return patch
+
+
+def window_mean_std(window):
+    """Get mean and standard deviation of a sub-window.
+
+    :param window: sub-window to get statistics for
+    :return: mean and standard deviation of the sub-window
+    """
+    mean = np.mean(window)
+    std = np.std(window)
+
+    return mean, std
 
 
 class SatNetSubWindows(object):
@@ -257,19 +275,19 @@ class SatNetSubWindows(object):
         :param max: the maximum intensity value
         :return: nothing
         """
-        windows = tf.image.per_image_standardization(self.windows)
-        with tf.Session() as sess:
-            sess.run(windows)
-            self.windows = windows.eval()
+        for i, window in enumerate(self.windows):
+            mean, std = window_mean_std(window)
+            adj_std = np.max(std, 1 / window.size)
+            self.windows[i] = (window - mean) / adj_std
 
         if self.windows_with is not None:
-            windows = tf.image.per_image_standardization(self.windows_with)
-            with tf.Session() as sess:
-                sess.run(windows)
-                self.windows_with = windows.eval()
+            for i, window in enumerate(self.windows_with):
+                mean, std = window_mean_std(window)
+                adj_std = np.max(std, 1 / window.size)
+                self.windows_with[i] = (window - mean) / adj_std
 
         if self.windows_without is not None:
-            windows = tf.image.per_image_standardization(self.windows_without)
-            with tf.Session() as sess:
-                sess.run(windows)
-                self.windows_without = windows.eval()
+            for i, window in enumerate(self.windows_without):
+                mean, std = window_mean_std(window)
+                adj_std = np.max(std, 1 / window.size)
+                self.windows_without[i] = (window - mean) / adj_std
