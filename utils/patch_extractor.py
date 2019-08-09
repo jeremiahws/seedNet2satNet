@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 #from joblib import Parallel, delayed
 #import multiprocessing
 import itertools
-import tensorflow as tf
 
 
 def extract_patch(img, corner_coords):
@@ -277,17 +276,17 @@ class SatNetSubWindows(object):
         """
         for i, window in enumerate(self.windows):
             mean, std = window_mean_std(window)
-            adj_std = np.max(std, 1 / window.size)
+            adj_std = np.max([std, 1. / window.size])
             self.windows[i] = (window - mean) / adj_std
 
         if self.windows_with is not None:
             for i, window in enumerate(self.windows_with):
                 mean, std = window_mean_std(window)
-                adj_std = np.max(std, 1 / window.size)
+                adj_std = np.max([std, 1. / window.size])
                 self.windows_with[i] = (window - mean) / adj_std
 
         if self.windows_without is not None:
             for i, window in enumerate(self.windows_without):
                 mean, std = window_mean_std(window)
-                adj_std = np.max(std, 1 / window.size)
+                adj_std = np.max([std, 1. / window.size])
                 self.windows_without[i] = (window - mean) / adj_std
