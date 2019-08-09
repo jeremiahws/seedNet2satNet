@@ -61,11 +61,11 @@ def main(FLAGS):
         json_files = glob(os.path.join(dir, 'Annotations', '*.json'))
 
         # get only the name of the .json file w/o extension
-        json_names = [file.split("\\")[-1] for file in json_files]
+        json_names = [file.split("/")[-1] for file in json_files]
         json_names = [name.split(".json")[0] for name in json_names]
 
         # get only the name of the .fits file w/o extension
-        img_names = [file.split("\\")[-1] for file in img_files]
+        img_names = [file.split("/")[-1] for file in img_files]
         img_names = [name.split(".fits")[0] for name in img_names]
 
         # in case some annotations/images aren't paired, find the
@@ -109,8 +109,11 @@ def main(FLAGS):
                                           img_width=FLAGS.width,
                                           img_height=FLAGS.height)
 
-                    # normalize the sub-window intensities between [0, 1]
-                    sw.z2o_normalize_windows(0.0, 65535.0)
+                    # # normalize the sub-window intensities between [0, 1]
+                    # sw.z2o_normalize_windows(0.0, 65535.0)
+                    # normalize the sub-windows according to tf.image.per_image_standardization
+                    # see https://www.tensorflow.org/api_docs/python/tf/image/per_image_standardization
+                    sw.per_window_standardization()
 
                     # perform satellite detection inferences
                     inference_obj = SeedNet2SatNetInference(classifier, localizer, sw, gt_annos=anno, batch_size=FLAGS.batch_size)
@@ -125,23 +128,23 @@ def main(FLAGS):
                         # apply generic non-max suppression based on IoU
                         inds = inference_obj.non_max_suppression(inference_obj.raw_global_location_boxes,
                                                                  inference_obj.raw_pred_object_scores,
-                                                                 conf_thresh=0.99, iou_thresh=0.01, max_boxes=10)
+                                                                 conf_thresh=0.5, iou_thresh=0.01, max_boxes=10)
                         with tf.Session() as sess:
                             sess.run(inds)
                             detection_inds = inds.eval()
 
-                        object_locs = list(inference_obj.raw_global_location_preds[detection_inds])
+                        #object_locs = list(inference_obj.raw_global_location_preds[detection_inds])
                         object_boxes = list(inference_obj.raw_global_location_boxes[detection_inds])
                         object_scores = list(inference_obj.raw_pred_object_scores[detection_inds])
                         object_scores = [[1.0 - score, score] for score in object_scores]
 
                     elif inference_obj.n_detections == 1:
-                        object_locs = list(inference_obj.raw_global_location_preds)
+                        #object_locs = list(inference_obj.raw_global_location_preds)
                         object_boxes = list(inference_obj.raw_global_location_boxes)
                         object_scores = [1.0 - inference_obj.raw_pred_object_scores, inference_obj.raw_pred_object_scores]
 
                     else:
-                        object_locs = []
+                        #object_locs = []
                         object_boxes = []
                         object_scores = []
 

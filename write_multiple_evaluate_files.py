@@ -29,7 +29,6 @@ def main(FLAGS):
 
             classifier_path = os.path.join(FLAGS.classification_model_dir, classifier_ckpt_name)
             localizer_path = os.path.join(FLAGS.localization_model_dir, localizer_ckpt_name)
-
             json_path = os.path.join(FLAGS.json_dir, json_file)
             create_command = 'python write_evaluate_file.py' \
                            + ' --window_size={}'.format(experiment[0])\
