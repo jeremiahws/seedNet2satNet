@@ -55,7 +55,7 @@ def train(FLAGS):
 
     c_lr = ReduceLROnPlateau(patience=3)
     c_csv = CSVLogger('classifier_' + FLAGS.csv_file_name)
-    c_ckpt = ModelCheckpoint('classifier_' + FLAGS.model_ckpt_name, save_best_only=True)
+    c_ckpt = ModelCheckpoint('classifier_' + FLAGS.model_ckpt_name, save_best_only=True, save_weights_only=True)
     c_stop = EarlyStopping(patience=5)
 
     ce_loss = sparse_categorical_crossentropy

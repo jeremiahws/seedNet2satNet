@@ -300,11 +300,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--tfrecords_dir', type=str,
-                        default=r'/raid/jsanders/seedNet2satNet',
+                        default='/home/jsanders/data',
                         help='Path to the directory containing all of the tfrecords files for the subwindows.')
 
     parser.add_argument('--window_size', type=str,
-                        default='32',
+                        default='16,20,24,28,32',
                         help='Size of sub-windows (in pixels); single value or multiple values separated by a comma.')
 
     parser.add_argument('--stride', type=str,
@@ -356,7 +356,7 @@ if __name__ == '__main__':
                         help='Number of threads to be used by the input pipeline.')
 
     parser.add_argument('--gpu_list', type=str,
-                        default="2",
+                        default="0",
                         help='GPUs to use with this model.')
 
     parser.add_argument('--learning_rate', type=float,
