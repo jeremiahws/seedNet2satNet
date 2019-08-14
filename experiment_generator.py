@@ -300,7 +300,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--tfrecords_dir', type=str,
-                        default='/home/jsanders/data',
+                        default='/raid/jsanders/seedNet2satNet',
                         help='Path to the directory containing all of the tfrecords files for the subwindows.')
 
     parser.add_argument('--window_size', type=str,
@@ -370,5 +370,5 @@ if __name__ == '__main__':
     # parse known arguements
     FLAGS, unparsed = parser.parse_known_args()
 
-    classifier_main(FLAGS)
-    #localizer_main(FLAGS)
+    #classifier_main(FLAGS)
+    localizer_main(FLAGS)

@@ -53,10 +53,10 @@ def train(FLAGS):
                                                         cache_dataset_file=FLAGS.cache_in_file,
                                                         cache_path="train_l_" + FLAGS.cache_name)
 
-    l_lr = ReduceLROnPlateau(patience=3)
+    l_lr = ReduceLROnPlateau(patience=5)
     l_csv = CSVLogger('localizer_' + FLAGS.csv_file_name)
     l_ckpt = ModelCheckpoint('localizer_' + FLAGS.model_ckpt_name, save_best_only=True, save_weights_only=True)
-    l_stop = EarlyStopping(patience=5)
+    l_stop = EarlyStopping(patience=11)
 
     mse_loss = mean_squared_error
 
