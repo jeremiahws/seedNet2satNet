@@ -37,7 +37,8 @@ def parse_swcnn_classification_data(example_proto):
     windows = tf.sparse_tensor_to_dense(features_parsed['window'], default_value="")
     windows = tf.decode_raw(windows, tf.uint16)
     windows = tf.reshape(windows, [height, width, 1])
-    windows = tf.image.per_image_standardization(windows)
+    #windows = tf.image.per_image_standardization(windows)
+    windows = tf.divide(tf.cast(windows, tf.float32), tf.constant(65535.0))
 
     # always return filename (let the user ignore it downstream)
     return windows, annotations, filename
@@ -74,7 +75,8 @@ def parse_swcnn_localization_data(example_proto):
     windows = tf.sparse_tensor_to_dense(features_parsed['window'], default_value="")
     windows = tf.decode_raw(windows, tf.uint16)
     windows = tf.reshape(windows, [height, width, 1])
-    windows = tf.image.per_image_standardization(windows)
+    #windows = tf.image.per_image_standardization(windows)
+    windows = tf.divide(tf.cast(windows, tf.float32), tf.constant(65535.0))
 
     # always return filename (let the user ignore it downstream)
     return windows, annotations, filename
