@@ -61,11 +61,11 @@ def main(FLAGS):
         json_files = glob(os.path.join(dir, 'Annotations', '*.json'))
 
         # get only the name of the .json file w/o extension
-        json_names = [file.split("/")[-1] for file in json_files]
+        json_names = [file.split("\\")[-1] for file in json_files]
         json_names = [name.split(".json")[0] for name in json_names]
 
         # get only the name of the .fits file w/o extension
-        img_names = [file.split("/")[-1] for file in img_files]
+        img_names = [file.split("\\")[-1] for file in img_files]
         img_names = [name.split(".fits")[0] for name in img_names]
 
         # in case some annotations/images aren't paired, find the
@@ -107,16 +107,18 @@ def main(FLAGS):
                                           stride=FLAGS.stride,
                                           padding=FLAGS.padding,
                                           img_width=FLAGS.width,
-                                          img_height=FLAGS.height)
+                                          img_height=FLAGS.height,
+                                          pad_img=False)
 
                     # # normalize the sub-window intensities between [0, 1]
-                    # sw.z2o_normalize_windows(0.0, 65535.0)
+                    sw.z2o_normalize_windows(0.0, 65535.0)
                     # normalize the sub-windows according to tf.image.per_image_standardization
                     # see https://www.tensorflow.org/api_docs/python/tf/image/per_image_standardization
-                    sw.per_window_standardization()
+                    # sw.per_window_standardization()
 
                     # perform satellite detection inferences
-                    inference_obj = SeedNet2SatNetInference(classifier, localizer, sw, gt_annos=anno, batch_size=FLAGS.batch_size)
+                    inference_obj = SeedNet2SatNetInference(classifier, localizer, sw, padding=FLAGS.padding, gt_annos=anno, batch_size=FLAGS.batch_size)
+                    inference_obj.plot_raw_inferences(plot_gt=True)
 
                     # # apply clustering-based non-max suppression
                     # cluster_locs, cluster_scores = inference_obj.cluster_raw_detections(thresh=0.05)
@@ -133,18 +135,18 @@ def main(FLAGS):
                             sess.run(inds)
                             detection_inds = inds.eval()
 
-                        #object_locs = list(inference_obj.raw_global_location_preds[detection_inds])
+                        object_locs = list(inference_obj.raw_global_location_preds[detection_inds])
                         object_boxes = list(inference_obj.raw_global_location_boxes[detection_inds])
                         object_scores = list(inference_obj.raw_pred_object_scores[detection_inds])
                         object_scores = [[1.0 - score, score] for score in object_scores]
 
                     elif inference_obj.n_detections == 1:
-                        #object_locs = list(inference_obj.raw_global_location_preds)
+                        object_locs = list(inference_obj.raw_global_location_preds)
                         object_boxes = list(inference_obj.raw_global_location_boxes)
                         object_scores = [1.0 - inference_obj.raw_pred_object_scores, inference_obj.raw_pred_object_scores]
 
                     else:
-                        #object_locs = []
+                        object_locs = []
                         object_boxes = []
                         object_scores = []
 
@@ -194,15 +196,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--window_size', type=int,
-                        default=32,
+                        default=20,
                         help='Size of sub-windows (in pixels).')
 
     parser.add_argument('--stride', type=int,
-                        default=4,
+                        default=3,
                         help='Stride of the sliding window (in pixels).')
 
     parser.add_argument('--padding', type=int,
-                        default=10,
+                        default=8,
                         help='Padding to apply to sub-windows to avoid edge cases (in pixels).')
 
     parser.add_argument('--width', type=int,
@@ -214,23 +216,23 @@ if __name__ == '__main__':
                         help='Height of the image (in pixels).')
 
     parser.add_argument('--json_path', type=str,
-                        default='C:/Users/jsanders/Desktop/seedNet2satNet/evaluate_files/script_test.json',
+                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/evaluate/classifier_seedNet2satNet_classifier_windowsize_20_stride_3_padding_8_ratio_10_localizer_seedNet2satNet_localizer_windowsize_20_stride_3_padding_8.json',
                         help='Path to the JSON evaluate file to write.')
 
     parser.add_argument('--classifier_path', type=str,
-                        default='C:/Users/jsanders/Desktop/dlae_migration2/dlae/models/seedNet2satNet_classifier_32w_4s_10p_10r.h5',
+                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/seednet_classifiers_z2o_norm/classifier_seedNet2satNet_classifier_windowsize_20_stride_3_padding_8_ratio_10.h5',
                         help='Path to the HDF5 file containing the seedNet2satNet classifier.')
 
     parser.add_argument('--localizer_path', type=str,
-                        default='C:/Users/jsanders/Desktop/dlae_migration2/dlae/models/seedNet2satNet_localizer_32w_4s_10p_10r.h5',
+                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/seednet_localizers_z2o_norm/localizer_seedNet2satNet_localizer_windowsize_20_stride_3_padding_8.h5',
                         help='Path to the HDF5 file containing the seedNet2satNet localizer.')
 
     parser.add_argument('--test_file_names', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full/SatNet/info/data_split/test.txt',
+                        default='C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full_v2/SatNet/info/data_split/test.txt',
                         help='Path to .txt file containing testing file names.')
 
     parser.add_argument('--test_fraction', type=float,
-                        default=0.001,
+                        default=0.05,
                         help='Fraction of total number of testing images to make predictions on.')
 
     parser.add_argument('--n_test', type=int,
@@ -238,15 +240,15 @@ if __name__ == '__main__':
                         help='Total number of SatNet testing images.')
 
     parser.add_argument('--satnet_data_dir', type=str,
-                        default='C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full/SatNet/data',
+                        default='C:/Users/jsanders/Desktop/data/seednet2satnet/SatNet_full_v2/SatNet/data',
                         help='Top level directory for SatNet data from all sensors and collection days.')
 
     parser.add_argument('--batch_size', type=int,
-                        default=7000,
+                        default=256,
                         help='Batch size to use in testing.')
 
     parser.add_argument('--gpu_list', type=str,
-                        default="2",
+                        default="0",
                         help='GPUs to use with this model.')
 
     # parse known arguements
