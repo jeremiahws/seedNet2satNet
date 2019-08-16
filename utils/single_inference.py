@@ -96,6 +96,7 @@ class SeedNet2SatNetInference(object):
                  sliding_window,
                  batch_size=64,
                  box_size=20,
+                 padding=0,
                  gt_annos=None):
         """Performs inference on a SatNet image upon initialization.
 
@@ -145,7 +146,7 @@ class SeedNet2SatNetInference(object):
             self.raw_global_location_preds = np.asarray(self.raw_global_location_preds)
             self.raw_global_location_boxes = np.asarray(self.raw_global_location_boxes)
 
-    def plot_raw_inferences(self, plot_gt=False):
+    def plot_raw_inferences(self, plot_gt=False, conf_thresh=None):
         """Plot the image with the inferred object locations without non-max
         suppression.
 
@@ -322,7 +323,7 @@ class SeedNet2SatNetInference(object):
         x_delta = 0.5 * self.box_size
         y_delta = 0.5 * self.box_size
         plt.imshow(self.sliding_window.image, cmap='gray')
-        if locations:
+        if any(locations):
             for i, location in enumerate(locations):
                 x_min = location[1] * self.sliding_window.img_width - x_delta
                 y_min = location[0] * self.sliding_window.img_height - y_delta

@@ -223,14 +223,14 @@ class SatNetSubWindows(object):
 
         :return: nothing
         """
-        try:
-            ind = np.random.randint(self.windows_with.shape[-1])
+        if self.windows_with is not None:
+            ind = np.random.randint(self.windows_with.shape[0])
             plt.imshow(self.windows_with[ind, :, :])
             plt.scatter(x=[self.object_location_with[ind, 1] * self.img_width],
                         y=[self.object_location_with[ind, 0] * self.img_height],
                         c='r', s=30)
             plt.show()
-        except ValueError:
+        else:
             print('No windows to show - try running the get_obj_windows method.')
 
         return
@@ -240,11 +240,11 @@ class SatNetSubWindows(object):
 
         :return: nothing
         """
-        try:
-            ind = np.random.randint(self.windows_without.shape[-1])
+        if self.windows_without is not None:
+            ind = np.random.randint(self.windows_without.shape[0])
             plt.imshow(self.windows_without[ind, :, :])
             plt.show()
-        except ValueError:
+        else:
             print('No windows to show - try running the get_obj_windows method.')
 
         return
