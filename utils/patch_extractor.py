@@ -43,6 +43,9 @@ class SatNetSubWindows(object):
         Attributes:
             img (int): the image from which the sub-windows are extracted from
             window_size (int): size of the sub-windows (in pixels)
+            stride (int): stride of the sliding window (in pixels)
+            padding (int): padding applied to the sub-windows for edge cases
+                (in pixels)
             img_width (int): number of columns of the image. If not specified,
                 it is assumed to be 512
             img_height (int): number of rows of the image. If not specified,
@@ -98,8 +101,10 @@ class SatNetSubWindows(object):
         self.img_width = img_width
         self.img_height = img_height
         self.stride = stride
+        self.padding = padding
+        self.pad_img = pad_img
 
-        if pad_img:
+        if self.pad_img:
             self.img_pad = padding
             img = np.pad(self.image, pad_width=self.img_pad, mode='constant')
         else:
@@ -164,7 +169,7 @@ class SatNetSubWindows(object):
                     cwindow_start = cwindow
                     cwindow_end = self.window_size
                 else:
-                    cwindow_start = cwindow_start + stride
+                    cwindow_start = cwindow_start + self.stride
                     cwindow_end = cwindow_start + self.window_size
 
                 if cwindow_end > self.img_width + 2 * self.img_pad - 1:
@@ -176,7 +181,7 @@ class SatNetSubWindows(object):
                         rwindow_start = rwindow
                         rwindow_end = self.window_size
                     else:
-                        rwindow_start = rwindow_start + stride
+                        rwindow_start = rwindow_start + self.stride
                         rwindow_end = rwindow_start + self.window_size
 
                     if rwindow_end > self.img_height + 2 * self.img_pad - 1:
@@ -188,8 +193,8 @@ class SatNetSubWindows(object):
                                                            (cwindow_start - self.img_pad) / self.img_width]
 
                     for centroid in centroids:
-                        if (rwindow_start + padding) / self.img_height < centroid[0] < (rwindow_start + self.window_size - padding) / self.img_height \
-                                and (cwindow_start + padding) / self.img_width < centroid[1] < (cwindow_start + self.window_size - padding) / self.img_width:
+                        if (rwindow_start + self.padding) / self.img_height < centroid[0] < (rwindow_start + self.window_size - self.padding) / self.img_height \
+                                and (cwindow_start + self.padding) / self.img_width < centroid[1] < (cwindow_start + self.window_size - self.padding) / self.img_width:
                             self.object_present[count] = 1
                             self.object_location[count, :] = [centroid[0] - rwindow_start / self.img_height, centroid[1] - cwindow_start / self.img_width]
                         else:

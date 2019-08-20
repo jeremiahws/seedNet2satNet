@@ -96,7 +96,6 @@ class SeedNet2SatNetInference(object):
                  sliding_window,
                  batch_size=64,
                  box_size=20,
-                 padding=0,
                  gt_annos=None):
         """Performs inference on a SatNet image upon initialization.
 
@@ -126,11 +125,13 @@ class SeedNet2SatNetInference(object):
         self.satellite_window_gt_location = sliding_window.object_location[inds]
         self.satellite_window_corner_coords = sliding_window.window_corner_coords[inds]
 
-        self.raw_location_preds = []
         self.raw_global_location_preds = []
         self.raw_global_location_boxes = []
         if self.n_detections > 0:
             self.raw_location_preds = localization_model.predict(self.satellite_window_preds, batch_size=batch_size)
+            # maybe use or uncomment depending on how sub-windows were incoded (whether padding was used or not)
+            self.raw_location_preds = self.raw_location_preds + self.sliding_window.padding
+            self.raw_location_preds = self.raw_location_preds / self.sliding_window.img_width
 
             x_delta = 0.5 * self.box_size / self.sliding_window.img_width
             y_delta = 0.5 * self.box_size / self.sliding_window.img_height
@@ -158,9 +159,17 @@ class SeedNet2SatNetInference(object):
         if self.n_detections > 0:
             x_c = []
             y_c = []
-            for location in self.raw_global_location_preds:
-                x_c.append(location[1] * self.sliding_window.img_width)
-                y_c.append(location[0] * self.sliding_window.img_height)
+            for i, location in enumerate(self.raw_global_location_preds):
+                if conf_thresh is not None:
+                    try:
+                        if self.raw_pred_object_scores[i] > conf_thresh:
+                            x_c.append(location[1] * self.sliding_window.img_width)
+                            y_c.append(location[0] * self.sliding_window.img_height)
+                    except:
+                        pass
+                else:
+                    x_c.append(location[1] * self.sliding_window.img_width)
+                    y_c.append(location[0] * self.sliding_window.img_height)
 
             plt.scatter(x=x_c, y=y_c, c='r', marker='x', s=30)
         else:
@@ -180,7 +189,7 @@ class SeedNet2SatNetInference(object):
 
         return
 
-    def plot_raw_boxes(self, plot_gt=False):
+    def plot_raw_boxes(self, plot_gt=False, conf_thresh=None):
         """Plot the image with bounding boxes computed around the inferred
          object locations without non-max suppression.
 
@@ -190,15 +199,27 @@ class SeedNet2SatNetInference(object):
         """
         plt.imshow(self.sliding_window.image, cmap='gray')
         if self.n_detections > 0:
-            for location in self.raw_global_location_boxes:
-                x_min = location[1] * self.sliding_window.img_width
-                y_min = location[0] * self.sliding_window.img_height
-                plt.gca().add_patch(Rectangle((x_min, y_min),
-                                              self.box_size, self.box_size,
-                                              linewidth=1,
-                                              edgecolor='r',
-                                              facecolor='none'))
-
+            for i, location in enumerate(self.raw_global_location_boxes):
+                if conf_thresh is not None:
+                    try:
+                        if self.raw_pred_object_scores[i] > conf_thresh:
+                            x_min = location[1] * self.sliding_window.img_width
+                            y_min = location[0] * self.sliding_window.img_height
+                            plt.gca().add_patch(Rectangle((x_min, y_min),
+                                                          self.box_size, self.box_size,
+                                                          linewidth=1,
+                                                          edgecolor='r',
+                                                          facecolor='none'))
+                    except:
+                        pass
+                else:
+                    x_min = location[1] * self.sliding_window.img_width
+                    y_min = location[0] * self.sliding_window.img_height
+                    plt.gca().add_patch(Rectangle((x_min, y_min),
+                                                  self.box_size, self.box_size,
+                                                  linewidth=1,
+                                                  edgecolor='r',
+                                                  facecolor='none'))
         else:
             pass
 
@@ -323,7 +344,7 @@ class SeedNet2SatNetInference(object):
         x_delta = 0.5 * self.box_size
         y_delta = 0.5 * self.box_size
         plt.imshow(self.sliding_window.image, cmap='gray')
-        if any(locations):
+        if locations:
             for i, location in enumerate(locations):
                 x_min = location[1] * self.sliding_window.img_width - x_delta
                 y_min = location[0] * self.sliding_window.img_height - y_delta
