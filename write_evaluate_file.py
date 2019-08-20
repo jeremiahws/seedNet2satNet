@@ -49,8 +49,8 @@ def main(FLAGS):
     sub_dirs = glob(os.path.join(FLAGS.satnet_data_dir, '*'))
 
     # load the seedNet2satNet models
-    classifier = VGG_like((FLAGS.window_size, FLAGS.window_size, 1), 2, softmax_output=True)
-    localizer = VGG_like((FLAGS.window_size, FLAGS.window_size, 1), 2, softmax_output=False)
+    classifier = VGG_like((FLAGS.window_size, FLAGS.window_size, 1), 2, softmax_output=True, dropout=False)
+    localizer = VGG_like((FLAGS.window_size, FLAGS.window_size, 1), 2, softmax_output=False, dropout=False)
     classifier.load_weights(FLAGS.classifier_path)
     localizer.load_weights(FLAGS.localizer_path)
 
@@ -117,8 +117,9 @@ def main(FLAGS):
                     # sw.per_window_standardization()
 
                     # perform satellite detection inferences
-                    inference_obj = SeedNet2SatNetInference(classifier, localizer, sw, padding=FLAGS.padding, gt_annos=anno, batch_size=FLAGS.batch_size)
-                    inference_obj.plot_raw_inferences(plot_gt=True)
+                    inference_obj = SeedNet2SatNetInference(classifier, localizer, sw, gt_annos=anno, batch_size=FLAGS.batch_size)
+                    # inference_obj.plot_raw_inferences(plot_gt=True, conf_thresh=0.8)
+                    # inference_obj.plot_raw_boxes(plot_gt=True, conf_thresh=0.8)
 
                     # # apply clustering-based non-max suppression
                     # cluster_locs, cluster_scores = inference_obj.cluster_raw_detections(thresh=0.05)
@@ -136,14 +137,18 @@ def main(FLAGS):
                             detection_inds = inds.eval()
 
                         object_locs = list(inference_obj.raw_global_location_preds[detection_inds])
-                        object_boxes = list(inference_obj.raw_global_location_boxes[detection_inds])
-                        object_scores = list(inference_obj.raw_pred_object_scores[detection_inds])
+                        boxes = inference_obj.raw_global_location_boxes[detection_inds]
+                        object_boxes = [box.tolist() for box in boxes]
+                        scores = inference_obj.raw_pred_object_scores[detection_inds]
+                        object_scores = [score.tolist() for score in scores]
                         object_scores = [[1.0 - score, score] for score in object_scores]
 
                     elif inference_obj.n_detections == 1:
-                        object_locs = list(inference_obj.raw_global_location_preds)
-                        object_boxes = list(inference_obj.raw_global_location_boxes)
-                        object_scores = [1.0 - inference_obj.raw_pred_object_scores, inference_obj.raw_pred_object_scores]
+                        # object_locs = list(inference_obj.raw_global_location_preds)
+                        # object_boxes = list(inference_obj.raw_global_location_boxes)
+                        object_locs = inference_obj.raw_global_location_preds.tolist()
+                        object_boxes = inference_obj.raw_global_location_boxes.tolist()
+                        object_scores = [[1.0 - float(inference_obj.raw_pred_object_scores), float(inference_obj.raw_pred_object_scores)]]
 
                     else:
                         object_locs = []
@@ -172,6 +177,19 @@ def main(FLAGS):
                     else:
                         class_ids = []
 
+                    # # debugging the data types for JSON serialization
+                    # try:
+                    #     print(type(object_boxes[0]))
+                    #     print(type(object_boxes[0][0]))
+                    #     print(object_boxes[0])
+                    #     print(object_boxes[0][0])
+                    # except:
+                    #     pass
+                    # try:
+                    #     print(type(object_scores[0]))
+                    # except:
+                    #     pass
+
                     # add detections to the dictionary
                     detections_dict['image_name'].append(file_name)
                     detections_dict['predicted_boxes'].append(object_boxes)
@@ -196,7 +214,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--window_size', type=int,
-                        default=20,
+                        default=28,
                         help='Size of sub-windows (in pixels).')
 
     parser.add_argument('--stride', type=int,
@@ -204,7 +222,7 @@ if __name__ == '__main__':
                         help='Stride of the sliding window (in pixels).')
 
     parser.add_argument('--padding', type=int,
-                        default=8,
+                        default=10,
                         help='Padding to apply to sub-windows to avoid edge cases (in pixels).')
 
     parser.add_argument('--width', type=int,
@@ -216,15 +234,17 @@ if __name__ == '__main__':
                         help='Height of the image (in pixels).')
 
     parser.add_argument('--json_path', type=str,
-                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/evaluate/classifier_seedNet2satNet_classifier_windowsize_20_stride_3_padding_8_ratio_10_localizer_seedNet2satNet_localizer_windowsize_20_stride_3_padding_8.json',
+                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/evaluate/script_test_25percent.json',
                         help='Path to the JSON evaluate file to write.')
 
     parser.add_argument('--classifier_path', type=str,
-                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/seednet_classifiers_z2o_norm/classifier_seedNet2satNet_classifier_windowsize_20_stride_3_padding_8_ratio_10.h5',
+                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/trained_models/classifiers/classifier_seedNet2satNet_classifier_windowsize_28_stride_3_padding_10_ratio_10.h5',
+                        # default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/classifier_train_script_test.h5',
                         help='Path to the HDF5 file containing the seedNet2satNet classifier.')
 
     parser.add_argument('--localizer_path', type=str,
-                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/seednet_localizers_z2o_norm/localizer_seedNet2satNet_localizer_windowsize_20_stride_3_padding_8.h5',
+                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/trained_models/localizers/localizer_seedNet2satNet_localizer_windowsize_28_stride_3_padding_10.h5',
+                        # default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/localizer_train_script_test.h5',
                         help='Path to the HDF5 file containing the seedNet2satNet localizer.')
 
     parser.add_argument('--test_file_names', type=str,
@@ -232,7 +252,7 @@ if __name__ == '__main__':
                         help='Path to .txt file containing testing file names.')
 
     parser.add_argument('--test_fraction', type=float,
-                        default=0.05,
+                        default=0.25,
                         help='Fraction of total number of testing images to make predictions on.')
 
     parser.add_argument('--n_test', type=int,
