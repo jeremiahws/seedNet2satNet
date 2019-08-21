@@ -39,6 +39,7 @@ def main(FLAGS):
         "ground_truth_boxes": [],
         "ground_truth_class_id": [],
     }
+    images_metadata_dict = dict()
 
     # get the names of the test image files
     test_files = txt2list(FLAGS.test_file_names)
@@ -197,6 +198,38 @@ def main(FLAGS):
                     # except:
                     #     pass
 
+                    # Now use the filename to get to the metadata annotations.
+                    image_filename = file_name
+                    folder_name = image_filename.split("_")[0]
+                    m_file_name = "_".join(image_filename.split("_")[1:]) + ".json"
+                    annotation_path = os.path.join(FLAGS.satnet_data_dir,
+                                                   folder_name,
+                                                   "Annotations",
+                                                   m_file_name)
+                    image_metadata_filename = annotation_path
+
+                    # Load the image matedata
+                    fp = open(image_metadata_filename, "r")
+                    image_metadata_dict = json.load(fp)
+
+                    # Create a list to hold all inferences
+                    inferred_objects_dict = dict()
+
+                    # Now, iterate over each inferred box.
+                    for i, (box, score) in enumerate(zip(object_boxes,
+                                                         object_scores)):
+                        inference_dict = dict()
+
+                        inference_dict["box"] = box
+                        inference_dict["score"] = score
+
+                        inferred_objects_dict["inference_" + str(i)] = inference_dict
+
+                    image_metadata_dict["inferred_objects"] = inferred_objects_dict
+
+                    images_metadata_dict[image_filename] = image_metadata_dict
+
+
                     # add detections to the dictionary
                     detections_dict['image_name'].append(file_name)
                     detections_dict['predicted_boxes'].append(object_boxes)
@@ -210,6 +243,8 @@ def main(FLAGS):
 
             else:
                 pass
+
+    detections_dict["image_metadata"] = images_metadata_dict
 
     with open(FLAGS.json_path, 'w') as f:
         json.dump(detections_dict, f, indent=1)
@@ -241,7 +276,7 @@ if __name__ == '__main__':
                         help='Height of the image (in pixels).')
 
     parser.add_argument('--json_path', type=str,
-                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/evaluate/script_test_25percent.json',
+                        default='C:/Users/jsanders/Desktop/Github/seedNet2satNet/evaluate/script_test_10percent.json',
                         help='Path to the JSON evaluate file to write.')
 
     parser.add_argument('--classifier_path', type=str,
@@ -259,7 +294,7 @@ if __name__ == '__main__':
                         help='Path to .txt file containing testing file names.')
 
     parser.add_argument('--test_fraction', type=float,
-                        default=1.0,
+                        default=0.1,
                         help='Fraction of total number of testing images to make predictions on.')
 
     parser.add_argument('--n_test', type=int,
